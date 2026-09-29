@@ -4,8 +4,14 @@ import unittest
 
 from ask_reachy.choreography import (
     CHOREOGRAPHY,
+    ENTHUSIASTIC_ANTENNA_RAD,
+    ENTHUSIASTIC_BEAT_S,
+    ENTHUSIASTIC_CHOREOGRAPHY,
     ENTHUSIASTIC_ENERGY,
+    ENTHUSIASTIC_PITCH_DEG,
     RESERVED_ENERGY,
+    SHY_ANTENNAS_RAD,
+    SHY_CHOREOGRAPHY,
     choreography_duration_s,
     condition_label,
     scaled_choreography,
@@ -28,36 +34,57 @@ class ChoreographyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_energy(-0.01)
 
-    def test_sequence_is_identical_except_amplitude(self) -> None:
-        reserved = scaled_choreography(RESERVED_ENERGY)
-        enthusiastic = scaled_choreography(ENTHUSIASTIC_ENERGY)
-        self.assertEqual(len(reserved), len(CHOREOGRAPHY))
-        self.assertEqual(len(enthusiastic), len(CHOREOGRAPHY))
-        self.assertEqual([g.name for g in reserved], [g.name for g in enthusiastic])
+    def test_custom_energy_scales_the_open_sequence(self) -> None:
+        scaled = scaled_choreography(0.50)
+        self.assertEqual([g.name for g in scaled], [g.name for g in CHOREOGRAPHY])
         self.assertEqual(
-            [g.duration_s for g in reserved],
+            [g.duration_s for g in scaled],
             [g.duration_s for g in CHOREOGRAPHY],
         )
-        self.assertEqual(
-            [g.duration_s for g in enthusiastic],
-            [g.duration_s for g in reserved],
-        )
-        ratio = ENTHUSIASTIC_ENERGY / RESERVED_ENERGY
-        for low, high in zip(reserved, enthusiastic):
-            self.assertAlmostEqual(high.pitch_deg, low.pitch_deg * ratio)
-            self.assertAlmostEqual(high.roll_deg, low.roll_deg * ratio)
-            self.assertAlmostEqual(high.yaw_deg, low.yaw_deg * ratio)
-            self.assertAlmostEqual(
-                high.right_antenna_rad, low.right_antenna_rad * ratio
+        for gesture, full in zip(scaled, CHOREOGRAPHY):
+            self.assertAlmostEqual(gesture.pitch_deg, full.pitch_deg * 0.50)
+
+    def test_enthusiastic_bobs_and_flicks(self) -> None:
+        enthusiastic = scaled_choreography(ENTHUSIASTIC_ENERGY)
+        self.assertEqual(enthusiastic, ENTHUSIASTIC_CHOREOGRAPHY)
+        self.assertGreater(len(enthusiastic), len(SHY_CHOREOGRAPHY))
+        for index, gesture in enumerate(enthusiastic):
+            self.assertEqual(gesture.duration_s, ENTHUSIASTIC_BEAT_S)
+            self.assertLess(gesture.duration_s, min(g.duration_s for g in SHY_CHOREOGRAPHY))
+            expected_pitch = (
+                -ENTHUSIASTIC_PITCH_DEG if index % 2 == 0 else ENTHUSIASTIC_PITCH_DEG
             )
-            self.assertAlmostEqual(high.left_antenna_rad, low.left_antenna_rad * ratio)
-            self.assertAlmostEqual(high.body_yaw_rad, low.body_yaw_rad * ratio)
+            self.assertEqual(gesture.pitch_deg, expected_pitch)
+            self.assertEqual(gesture.z_m, 0.0)
+            self.assertEqual(abs(gesture.right_antenna_rad), ENTHUSIASTIC_ANTENNA_RAD)
+            self.assertEqual(gesture.left_antenna_rad, -gesture.right_antenna_rad)
+            if index:
+                self.assertNotEqual(
+                    gesture.right_antenna_rad,
+                    enthusiastic[index - 1].right_antenna_rad,
+                )
+
+    def test_reserved_is_the_shy_hiding_pose(self) -> None:
+        reserved = scaled_choreography(RESERVED_ENERGY)
+        self.assertEqual(reserved, SHY_CHOREOGRAPHY)
+        for gesture in reserved:
+            self.assertEqual(
+                (gesture.right_antenna_rad, gesture.left_antenna_rad),
+                SHY_ANTENNAS_RAD,
+            )
+            self.assertGreaterEqual(gesture.pitch_deg, 30.0)
+            self.assertLess(gesture.pitch_deg, 40.0)
+            self.assertLess(gesture.z_m, -0.03)
 
     def test_duration_does_not_depend_on_energy(self) -> None:
         self.assertAlmostEqual(choreography_duration_s(), 6.40)
-        self.assertEqual(
+        self.assertAlmostEqual(
             sum(g.duration_s for g in scaled_choreography(0.25)),
+            6.40,
+        )
+        self.assertAlmostEqual(
             sum(g.duration_s for g in scaled_choreography(0.90)),
+            13 * ENTHUSIASTIC_BEAT_S,
         )
 
     def test_scripted_answer_matches_recording_sidecar(self) -> None:

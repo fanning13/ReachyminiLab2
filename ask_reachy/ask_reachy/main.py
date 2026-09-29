@@ -239,6 +239,7 @@ class AskReachy(ReachyMiniApp):
             )
             reachy_mini.goto_target(
                 head=create_head_pose(
+                    z=gesture.z_m,
                     roll=gesture.roll_deg,
                     pitch=gesture.pitch_deg,
                     yaw=gesture.yaw_deg,
@@ -314,6 +315,7 @@ class AskReachy(ReachyMiniApp):
                         "roll_deg": gesture.roll_deg,
                         "pitch_deg": gesture.pitch_deg,
                         "yaw_deg": gesture.yaw_deg,
+                        "z_m": gesture.z_m,
                         "right_antenna_rad": gesture.right_antenna_rad,
                         "left_antenna_rad": gesture.left_antenna_rad,
                         "body_yaw_rad": gesture.body_yaw_rad,

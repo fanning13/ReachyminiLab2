@@ -21,14 +21,12 @@ This is a Python app. It uses the Reachy Mini microphone and speaker the way the
 
 | Condition | Label | `motion_energy` |
 | --- | --- | --- |
-| A | Reserved | `0.25` |
+| A | Reserved (shy) | `0.25` |
 | B | Enthusiastic | `0.90` |
 
 The value is printed at startup and written to the run log. `0.25` and `0.90` are the study values. The program also accepts any number from `0.0` to `1.0` and labels anything else `Custom`.
 
-At `1.0` the largest head angle in the sequence is 14 degrees and the largest antenna angle is 0.40 radians (about 23 degrees). Condition B is 90 percent of that. Both are inside the robot's limits (head pitch and roll ±40 degrees, body yaw ±160 degrees).
-
-Because each gesture keeps its duration, a larger `motion_energy` also means a higher average speed. The timing structure does not change.
+Reserved is a shy posture: antennas folded down, head lowered and pitched down. Enthusiastic bobs the head between 24° up and 24° down and reverses the antennas every 0.50 s, the shortest smooth move. Both stay inside the hardware limits (head pitch and roll ±40 degrees). The run still starts and ends at the neutral pose.
 
 ## What Reachy says
 
@@ -159,7 +157,11 @@ A connection failure before the trial starts is logged too, with status `error`.
 
 ## The gesture sequence
 
-Eight poses, always in this order, always with these durations. Angles below are the full-scale pose (`motion_energy` = 1). A trial multiplies every angle by `motion_energy`.
+Reserved uses eight slow poses. Both antennas stay folded down (`-3.05` and `+3.05` rad, the same pose as sleep), and the head stays lowered and pitched down (about 32° to 36°) so the face is nearly hidden.
+
+Enthusiastic uses thirteen half-second beats, starting with the head tipped up, then down, and alternating from there. The antennas swap direction on every beat (`+1.20` / `-1.20` rad, then the reverse), so they move about twice a second through the answer.
+
+Any other `motion_energy` scales the open sequence below. The run still starts and ends at the neutral pose.
 
 | Gesture | Duration | What moves at full scale |
 | --- | --- | --- |
