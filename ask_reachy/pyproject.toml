@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "ask_reachy"
+version = "0.1.0"
+description = "Spoken question-and-answer companion with two movement energies."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "reachy-mini"
+]
+keywords = ["reachy-mini-app"]
+
+[project.scripts]
+ask-reachy = "ask_reachy.main:main"
+
+[project.entry-points."reachy_mini_apps"]
+ask_reachy = "ask_reachy.main:AskReachy"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+ask_reachy = ["**/*"] # Also include all non-.py files
