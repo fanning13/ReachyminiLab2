@@ -6,10 +6,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ask_reachy"
 version = "0.1.0"
-description = "Spoken question-and-answer companion with two movement energies."
+description = "Two-story Reachy session with a fixed script and shy or curious movement."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "faster-whisper",
     "reachy-mini"
 ]
 keywords = ["reachy-mini-app"]

@@ -177,7 +177,7 @@ SHY_CHOREOGRAPHY: tuple[Gesture, ...] = (
 
 # Enthusiastic (0.90). Positive pitch is head-down (same axis as the shy tuck);
 # negative pitch is head-up. Each beat is the shortest smooth goto (0.50 s),
-# so the antennas reverse about twice a second for the length of the answer.
+# so the antennas reverse about twice a second for each spoken response.
 ENTHUSIASTIC_BEAT_S = 0.50
 ENTHUSIASTIC_PITCH_DEG = 24.0
 ENTHUSIASTIC_ANTENNA_RAD = 1.20
@@ -201,9 +201,9 @@ def condition_label(motion_energy: float) -> str:
     """Map the two study values to their labels. Any other value is Custom."""
     rounded = round(float(motion_energy), 2)
     if abs(rounded - RESERVED_ENERGY) < 1e-9:
-        return "Reserved"
+        return "Shy"
     if abs(rounded - ENTHUSIASTIC_ENERGY) < 1e-9:
-        return "Enthusiastic"
+        return "Curious"
     return "Custom"
 
 

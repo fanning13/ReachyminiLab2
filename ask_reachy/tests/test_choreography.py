@@ -1,5 +1,6 @@
 """Choreography stays the same shape at both study energies."""
 
+import random
 import unittest
 
 from ask_reachy.choreography import (
@@ -17,13 +18,29 @@ from ask_reachy.choreography import (
     scaled_choreography,
     validate_energy,
 )
-from ask_reachy.speech import SCRIPTED_ANSWER, load_scripted_answer
+from ask_reachy.speech import (
+    CONTINUE_QUESTION,
+    CURIOUS,
+    END_STORY,
+    INTRO,
+    PROMPT_A,
+    PROMPT_B,
+    SHY,
+    STORY_FOLLOWUPS,
+    STUDY_CLOSING,
+    WHATS_NEXT,
+    line_duration_s,
+    load_all_lines,
+    load_line,
+    plan_session,
+)
+from ask_reachy.transcribe import classify_yes_no
 
 
 class ChoreographyTests(unittest.TestCase):
     def test_study_labels(self) -> None:
-        self.assertEqual(condition_label(0.25), "Reserved")
-        self.assertEqual(condition_label(0.90), "Enthusiastic")
+        self.assertEqual(condition_label(0.25), "Shy")
+        self.assertEqual(condition_label(0.90), "Curious")
         self.assertEqual(condition_label(0.5), "Custom")
 
     def test_energy_bounds(self) -> None:
@@ -87,9 +104,60 @@ class ChoreographyTests(unittest.TestCase):
             13 * ENTHUSIASTIC_BEAT_S,
         )
 
-    def test_scripted_answer_matches_recording_sidecar(self) -> None:
-        self.assertEqual(load_scripted_answer(), SCRIPTED_ANSWER)
-        self.assertNotIn("language model", SCRIPTED_ANSWER.lower())
+    def test_story_lines_are_fixed(self) -> None:
+        self.assertEqual(
+            [line.text for line in STORY_FOLLOWUPS],
+            [
+                "That's interesting. What's next?",
+                "That's interesting. What's next?",
+                "Interesting story. Would you like to continue expanding it?",
+            ],
+        )
+        self.assertEqual(STORY_FOLLOWUPS[0], WHATS_NEXT)
+        self.assertEqual(STORY_FOLLOWUPS[2], CONTINUE_QUESTION)
+        self.assertIn("Story 1", END_STORY[1].text)
+        self.assertIn("Story 2", END_STORY[2].text)
+        self.assertTrue(INTRO.text.startswith("Hi there, I'm Reachy Mini"))
+        self.assertTrue(STUDY_CLOSING.text.startswith("That conclude our study."))
+        self.assertIn("fallen leaves", PROMPT_A.line.text)
+        self.assertIn("familiar street", PROMPT_B.line.text)
+
+    def test_session_plan_uses_both_prompts_and_both_styles(self) -> None:
+        plan = plan_session(random.Random(7))
+        self.assertEqual(plan_session(random.Random(7)), plan)
+        self.assertEqual({slot.prompt.key for slot in plan}, {"A", "B"})
+        self.assertEqual(
+            {slot.characteristic.name for slot in plan},
+            {SHY.name, CURIOUS.name},
+        )
+        self.assertEqual(SHY.motion_energy, 0.25)
+        self.assertEqual(CURIOUS.motion_energy, 0.90)
+
+    def test_yes_no_classification(self) -> None:
+        self.assertEqual(classify_yes_no("Yes, I would."), "Yes")
+        self.assertEqual(classify_yes_no("yeah sure"), "Yes")
+        self.assertEqual(classify_yes_no("No thanks."), "No")
+        self.assertEqual(classify_yes_no("nope"), "No")
+        self.assertEqual(classify_yes_no("yes and no"), "Unclear")
+        self.assertEqual(classify_yes_no(""), "Unclear")
+        self.assertEqual(classify_yes_no("maybe later"), "Unclear")
+
+    def test_scripted_lines_match_recordings(self) -> None:
+        load_all_lines()
+        lines = (
+            INTRO,
+            PROMPT_A.line,
+            PROMPT_B.line,
+            WHATS_NEXT,
+            CONTINUE_QUESTION,
+            END_STORY[1],
+            END_STORY[2],
+            STUDY_CLOSING,
+        )
+        for line in lines:
+            self.assertEqual(load_line(line), line.text)
+            self.assertGreater(line_duration_s(line), 0.3)
+            self.assertLess(line_duration_s(line), 20.0)
 
 
 if __name__ == "__main__":
