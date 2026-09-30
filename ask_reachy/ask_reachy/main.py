@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import os
 import random
+import select
 import signal
 import sys
 import tempfile
@@ -304,7 +305,7 @@ class AskReachy(ReachyMiniApp):
     def _record_turn(
         self, reachy_mini: ReachyMini, stop_event: threading.Event
     ) -> tuple[list[np.ndarray], float, int]:
-        """Record until 5 s of quiet. Return samples, speaking length, rate."""
+        """Record until 5 s of quiet, or until Enter ends the turn. Return samples, speaking length, rate."""
         media = reachy_mini.media
         try:
             media.stop_playing()
@@ -319,9 +320,25 @@ class AskReachy(ReachyMiniApp):
         chunks: list[np.ndarray] = []
         sample_rate = 16000
         wait_started = time.monotonic()
+        manual_end = threading.Event()
+        listen_done = threading.Event()
+        watcher = threading.Thread(
+            target=_watch_for_enter,
+            args=(manual_end, listen_done),
+            daemon=True,
+        )
+        watcher.start()
         try:
-            print("Listening... (a 5 s pause ends the turn; Ctrl+C returns to neutral)")
+            print(
+                "Listening... Press Enter when the participant has stopped. "
+                "A 5 s pause also ends the turn. Ctrl+C returns to neutral."
+            )
             while not stop_event.is_set():
+                if manual_end.is_set():
+                    print("Enter received. Ending this turn.")
+                    if heard and speech_s > 0.0:
+                        return chunks, speech_s + inside_pause_s, sample_rate
+                    return [], 0.0, sample_rate
                 if not heard and time.monotonic() - wait_started >= SPEECH_START_TIMEOUT_S:
                     print(f"No speech detected within {SPEECH_START_TIMEOUT_S:.0f} s.")
                     return [], 0.0, sample_rate
@@ -352,6 +369,7 @@ class AskReachy(ReachyMiniApp):
                         return chunks, speech_s + inside_pause_s, sample_rate
             raise OperatorStop()
         finally:
+            listen_done.set()
             try:
                 media.stop_recording()
             except Exception as exc:
@@ -586,6 +604,23 @@ class AskReachy(ReachyMiniApp):
             raise KeyboardInterrupt
 
         signal.signal(signal.SIGINT, _handle)
+
+
+def _watch_for_enter(manual_end: threading.Event, listen_done: threading.Event) -> None:
+    """Set ``manual_end`` when the researcher presses Enter during a listen."""
+    while not listen_done.is_set():
+        try:
+            ready, _, _ = select.select([sys.stdin], [], [], 0.2)
+        except (OSError, ValueError):
+            return
+        if not ready:
+            continue
+        try:
+            sys.stdin.readline()
+        except Exception:
+            return
+        manual_end.set()
+        return
 
 
 def _turn_dict(turn: TurnRecord) -> dict:

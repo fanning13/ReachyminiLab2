@@ -135,7 +135,7 @@ Do this only after a simulation run has finished and returned to neutral.
 python -m ask_reachy.main
 ```
 
-Read the assignment in the terminal before the participant begins. Reachy speaks the introduction, then the first prompt. A 5 second pause ends each turn. If nobody speaks for 90 seconds, that turn is recorded as empty and the script continues.
+Read the assignment in the terminal before the participant begins. Reachy speaks the introduction, then the first prompt. A 5 second pause ends each turn. If the pause is not detected, press Enter in this terminal to end the turn and let Reachy continue. Ctrl+C still stops the whole session. If nobody speaks for 90 seconds, that turn is recorded as empty and the script continues.
 
 Nothing else changes between simulation and the robot: same app, same energies, same recording, same gesture list. The daemon command and the microphone are the difference. Wireless robots are reached over the network; Lite robots use a daemon on the laptop. If you are on the same machine as the daemon, the app connects to localhost.
 
