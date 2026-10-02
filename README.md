@@ -26,6 +26,59 @@ The install includes the Reachy Mini SDK and `faster-whisper`. Transcription run
 
 Run the commands below from the repository root with the environment activated. This is a terminal app; you do not need to open the HTML files.
 
+## Connecting to the course robot
+
+These steps are a short version of the course's *Reachy Mini Access and Basic Testing Guide*. Use your assigned robot and the login details provided in class.
+
+### Option 1: Course VM
+
+1. Set up Cornell two-factor authentication and connect to RedRover. For off-campus access, follow the course's Cornell VPN instructions.
+2. Open Remote Desktop and connect to your assigned VM using the hostname in the course guide. Use your Cornell email for the initial sign-in if prompted, then your NetID at the VM login screen.
+3. Power on your assigned robot. In the VM terminal, SSH into it using the robot hostname from the guide:
+
+   ```bash
+   ssh -l pollen <your-robot-hostname>
+   ```
+
+   Replace `<your-robot-hostname>` with the assigned hostname and enter the robot password supplied in class.
+
+4. In the robot's SSH terminal, check the existing daemon and activate the installed Python environment:
+
+   ```bash
+   systemctl is-active reachy-mini-daemon
+   source /venvs/mini_daemon/bin/activate
+   python -c "import reachy_mini; print(reachy_mini.__file__)"
+   ```
+
+   The first command should print `active`, and the last should print the SDK's file path. If the daemon is inactive, contact the instructor. Do not start a second daemon on the course robot.
+
+### Option 2: Classroom network
+
+In Tata 429, connect to the class WiFi network using the details provided in class and turn on your robot. Open **Reachy Mini Control**, select your assigned robot's detected IP address (or use its address from the course guide), and click **Connect**. This connects the control app; it does not install Ask Reachy.
+
+To use the same robot-terminal workflow as above, open a terminal on your computer and run `ssh -l pollen <your-robot-ip>`, replacing the placeholder with your assigned robot's address. Then check the daemon and activate the environment using the commands above.
+
+### Quick motion check
+
+With space around the antennas, run this in the robot's SSH terminal after activating the environment:
+
+```bash
+python - <<'PY'
+from reachy_mini import ReachyMini
+
+with ReachyMini() as mini:
+    mini.enable_motors()
+    print("Connected, moving antennas...")
+    for pose in ([0.3, -0.3], [-0.3, 0.3], [0.0, 0.0]):
+        mini.goto_target(antennas=pose, duration=1.0)
+    print("Done")
+PY
+```
+
+The antennas should move in opposite directions, reverse, and return to neutral. This checks motion only; check the microphone and speaker before running a participant session.
+
+For Ask Reachy, clone this repository in the robot's SSH terminal, enter the repository folder, and run `python -m pip install -e ./ask_reachy` in the activated environment. Use the existing `/venvs/mini_daemon` environment for this course workflow instead of creating the laptop `.venv` above. Then use the participant-session command below, without starting another daemon. Keep simulation runs on your own computer. When finished, stop the app, let it return to neutral, and type `exit` to leave SSH.
+
 ## Running the app
 
 ### Try it in simulation
@@ -55,7 +108,7 @@ reachy-mini-daemon --sim --headless
 
 ### Run with Reachy Mini
 
-Stop the simulation daemon first. For Reachy Mini Lite, connect the robot and start `reachy-mini-daemon` without a simulation flag. For Wireless, power on the robot and follow the SDK guide to connect to its running daemon. Check that the microphone and speaker work and that the head and antennas have room to move.
+If using the course robot, keep its existing daemon running and use the SSH setup above. For your own robot, stop the simulation daemon first. For Reachy Mini Lite, connect the robot and start `reachy-mini-daemon` without a simulation flag. For Wireless, power on the robot and follow the SDK guide to connect to its running daemon. Check that the microphone and speaker work and that the head and antennas have room to move.
 
 Then run:
 
